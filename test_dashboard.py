@@ -42,9 +42,9 @@ def test_classificar_condicoes():
         'condicoes': ["BOA", "RUIM", "REGULAR", "INDETERMINADA"],
         'outra_coluna': [1, 2, 3, 4]
     }
-    df = pd.DataFrame(data)
+    data_frame = pd.DataFrame(data)
 
-    resultado = classificar_condicoes(df, 'condicoes')
+    resultado = classificar_condicoes(data_frame, 'condicoes')
 
     assert resultado['classificacao'].tolist() == ["Boa", "Ruim", "Regular", "Indeterminada"]
 
@@ -52,10 +52,10 @@ def test_classificar_condicoes():
 # Para os gráficos e mapas, faremos testes focados na lógica
 def test_gerar_grafico_pizza():
     """Testa a função que gera o gráfico de pizza."""
-    df = pd.DataFrame({
+    data_frame = pd.DataFrame({
         'classificacao': ['Boa', 'Ruim', 'Boa', 'Regular', 'Indeterminada']
     })
-    fig = gerar_grafico_pizza(df, "Vertical")
+    fig = gerar_grafico_pizza(data_frame, "Vertical")
 
     # Verifica se o gráfico foi criado com as categorias corretas
     assert set(fig.data[0]['labels']) == {'Boa', 'Ruim', 'Regular', 'Indeterminada'}
@@ -63,7 +63,7 @@ def test_gerar_grafico_pizza():
 
 def test_adicionar_pontos_mapa_verticais():
     """Testa a função de adicionar pontos ao mapa para sinalizações verticais."""
-    df = pd.DataFrame({
+    data_frame = pd.DataFrame({
         'latitude': [-15.77972, -15.78000],
         'longitude': [-47.92972, -47.93000],
         'classificacao': ['Boa', 'Ruim'],
@@ -78,6 +78,6 @@ def test_adicionar_pontos_mapa_verticais():
     mapa = folium.Map(location=[-15.77972, -47.92972], zoom_start=6)
 
     # Adiciona os pontos ao mapa
-    mapa = adicionar_pontos_mapa_verticais(df, mapa)
+    mapa = adicionar_pontos_mapa_verticais(data_frame, mapa)
 
     assert isinstance(mapa, folium.Map), "A função não retornou um objeto folium.Map"

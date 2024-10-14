@@ -53,14 +53,14 @@ def classificar_condicao(condicao):
 
 
 # Aplicar a classificação de condição nas colunas de condições e condicao
-def classificar_condicoes(df, coluna_condicao):
+def classificar_condicoes(data_frame, coluna_condicao):
     """Aplicar a classificação de condição para uma coluna específica em um dataframe."""
-    df['classificacao'] = df[coluna_condicao].apply(classificar_condicao)
-    return df
+    data_frame['classificacao'] = data_frame[coluna_condicao].apply(classificar_condicao)
+    return data_frame
 
 
 # Função para gerar o gráfico de pizza com base nas condições e cores fixas
-def gerar_grafico_pizza(df, tipo_sinalizacao):
+def gerar_grafico_pizza(data_frame, tipo_sinalizacao):
     """Gerar um gráfico de pizza para as condições das sinalizações."""
     cores = {
         "Boa": "green",
@@ -69,7 +69,7 @@ def gerar_grafico_pizza(df, tipo_sinalizacao):
         "Indeterminada": "gray"
     }
     fig = px.pie(
-        df,
+        data_frame,
         names='classificacao',
         title=f"Condições das Sinalizações ({tipo_sinalizacao})",
         color='classificacao',
@@ -79,18 +79,18 @@ def gerar_grafico_pizza(df, tipo_sinalizacao):
 
 
 # Função para gerar gráfico de barras com a contagem de tipos
-def gerar_grafico_barras_tipos(df, coluna, titulo):
+def gerar_grafico_barras_tipos(data_frame, coluna, titulo):
     """Gerar um gráfico de barras para a distribuição de tipos."""
-    df['coluna_normalizada'] = df[coluna].apply(limpar_string)
-    contagem = df['coluna_normalizada'].value_counts().reset_index()
+    data_frame['coluna_normalizada'] = data_frame[coluna].apply(limpar_string)
+    contagem = data_frame['coluna_normalizada'].value_counts().reset_index()
     contagem.columns = [coluna, 'Quantidade']
     fig = px.bar(contagem, x=coluna, y='Quantidade', title=titulo)
     return fig
 
 
-def adicionar_pontos_mapa_verticais(df, mapa_vertical):
+def adicionar_pontos_mapa_verticais(data_frame, mapa_vertical):
     """Adicionar pontos de sinalizações verticais no mapa com cores representando as condições."""
-    for _, row in df.iterrows():
+    for _, row in data_frame.iterrows():
         color = ("green" if row['classificacao'] == "Boa"
                  else "red" if row['classificacao'] == "Ruim"
                  else "#faa702" if row['classificacao'] == "Regular"
@@ -117,9 +117,9 @@ def adicionar_pontos_mapa_verticais(df, mapa_vertical):
 
 
 # Função para gerar o mapa de sinalizações horizontais com linhas coloridas
-def adicionar_pontos_mapa_horizontais(df, mapa_horizontal):
+def adicionar_pontos_mapa_horizontais(data_frame, mapa_horizontal):
     """Adicionar trechos de sinalizações horizontais no mapa."""
-    for _, row in df.iterrows():
+    for _, row in data_frame.iterrows():
         color = ("green" if row['classificacao'] == "Boa"
                  else "red" if row['classificacao'] == "Ruim"
                  else "#faa702" if row['classificacao'] == "Regular"
@@ -144,6 +144,27 @@ def adicionar_pontos_mapa_horizontais(df, mapa_horizontal):
             popup=popup_content
         ).add_to(mapa_horizontal)
     return mapa_horizontal
+
+
+# Função para gerar ranking das rodovias
+def gerar_ranking_rodovias(data_frame):
+    """Gerar ranking das 10 melhores e piores rodovias com base nas sinalizações boas e ruins."""
+    # Contagem de sinalizações boas e ruins por rodovia
+    ranking_boas = (data_frame[data_frame['classificacao'] == 'Boa'].
+                    groupby('rodovia').size().reset_index(name='boas'))
+    ranking_ruins = (data_frame[data_frame['classificacao'] == 'Ruim'].
+                     groupby('rodovia').size().reset_index(name='ruins'))
+
+    # Juntar os dois rankings
+    ranking_rodovias = pd.merge(ranking_boas, ranking_ruins, on='rodovia', how='outer').fillna(0)
+
+    # Ordenar pelas 10 melhores (mais sinalizações boas)
+    melhores_rodovias_sort = ranking_rodovias.sort_values(by='boas', ascending=False).head(10)
+
+    # Ordenar pelas 10 piores (mais sinalizações ruins)
+    piores_rodovias_sort = ranking_rodovias.sort_values(by='ruins', ascending=False).head(10)
+
+    return melhores_rodovias_sort, piores_rodovias_sort
 
 
 # Carregar dados
@@ -246,6 +267,20 @@ if opcao_dashboard == "Sinalização Vertical":
         mapa = adicionar_pontos_mapa_verticais(dados_filtrados, mapa)
         st_folium(mapa, width=None, height=500)
 
+    # Ranking das rodovias
+    st.subheader("Ranking das Rodovias")
+    melhores_rodovias, piores_rodovias = gerar_ranking_rodovias(dados_filtrados)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("10 Melhores Rodovias")
+        st.dataframe(melhores_rodovias)
+
+    with col2:
+        st.write("10 Piores Rodovias")
+        st.dataframe(piores_rodovias)
+
 elif opcao_dashboard == "Sinalização Horizontal":
     st.header("Sinalização Horizontal")
 
@@ -335,3 +370,17 @@ elif opcao_dashboard == "Sinalização Horizontal":
         mapa = folium.Map(location=[-15.77972, -47.92972], zoom_start=6)
         mapa = adicionar_pontos_mapa_horizontais(dados_filtrados, mapa)
         st_folium(mapa, width=None, height=500)
+
+    # Ranking das rodovias
+    st.subheader("Ranking das Rodovias")
+    melhores_rodovias, piores_rodovias = gerar_ranking_rodovias(dados_filtrados)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("10 Melhores Rodovias")
+        st.dataframe(melhores_rodovias)
+
+    with col2:
+        st.write("10 Piores Rodovias")
+        st.dataframe(piores_rodovias)
