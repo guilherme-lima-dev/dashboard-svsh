@@ -33,7 +33,7 @@ def limpar_string(texto):
 def classificar_condicao(condicao):
     condicao = condicao.upper()
     positivas = ["BOAS", "BOA", "BOM", "ÓTIMO", "EXCELENTE", "ADEQUADO", "SIMPLES", "BOAS CONDIÇÕES", "EM BOAS CONDIÇÕES"]
-    negativas = ["RUIM", "REGULAR", "PÉSSIMO", "INADEQUADO", "QUEBRADA", "AMASSADA", "QUEIMADA"]
+    negativas = ["RUIM", "PÉSSIMO", "INADEQUADO", "QUEBRADA", "AMASSADA", "QUEIMADA"]
     regulares = ["REGULAR"]
 
     if any(palavra in condicao for palavra in positivas):
@@ -57,7 +57,7 @@ def gerar_grafico_pizza(df, tipo_sinalizacao):
     cores = {
         "Boa": "green",
         "Ruim": "red",
-        "Regular": "yellow",
+        "Regular": "#faa702",
         "Indeterminada": "gray"
     }
     fig = px.pie(df, names='classificacao', title=f"Condições das Sinalizações ({tipo_sinalizacao})",
@@ -77,7 +77,7 @@ def gerar_grafico_barras_tipos(df, coluna, titulo):
 # Função para gerar o mapa de sinalizações verticais com círculos coloridos
 def adicionar_pontos_mapa_verticais(df, mapa):
     for _, row in df.iterrows():
-        color = "green" if row['classificacao'] == "Boa" else "red"
+        color = "green" if row['classificacao'] == "Boa" else "red" if row['classificacao'] == "Ruim" else "#faa702" if row['classificacao'] == "Regular" else "gray"
         popup_content = f"""
         <strong>Sinalização Vertical</strong><br>
         SRE: {row['sre']}<br>
@@ -102,7 +102,7 @@ def adicionar_pontos_mapa_verticais(df, mapa):
 # Função para gerar o mapa de sinalizações horizontais com linhas coloridas
 def adicionar_pontos_mapa_horizontais(df, mapa):
     for _, row in df.iterrows():
-        color = "green" if row['classificacao'] == "Boa" else "red"
+        color = "green" if row['classificacao'] == "Boa" else "red" if row['classificacao'] == "Ruim" else "#faa702" if row['classificacao'] == "Regular" else "gray"
         coordinates = [
             [row['latitude_inicial'], row['longitude_inicial']],
             [row['latitude_final'], row['longitude_final']]
