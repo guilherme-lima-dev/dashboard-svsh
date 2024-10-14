@@ -96,7 +96,7 @@ def adicionar_pontos_mapa_verticais(df, mapa, marker_cluster, start_idx=0, batch
         {imagens_html}
         """
 
-        folium.CircleMarker(
+        folium.Marker(
             location=[row['latitude'], row['longitude']],
             popup=popup_content
         ).add_to(marker_cluster)
@@ -208,9 +208,8 @@ if opcao_dashboard == "Sinalização Vertical":
     for i in range(total_batches):
         mapa = adicionar_pontos_mapa_verticais(dados_filtrados, mapa, marker_cluster, start_idx=i * batch_size,
                                                batch_size=batch_size)
-
-    # Exibir o mapa após todos os pontos serem carregados
-    st_folium(mapa, width=800, height=500)
+        time.sleep(0.5)  # Simular o carregamento progressivo
+        st_folium(mapa, width=800, height=500)
 
 elif opcao_dashboard == "Sinalização Horizontal":
     st.header("Sinalização Horizontal")
@@ -269,5 +268,5 @@ elif opcao_dashboard == "Sinalização Horizontal":
     for i in range(total_batches):
         mapa = adicionar_pontos_mapa_horizontais(dados_filtrados, mapa, marker_cluster, start_idx=i * batch_size,
                                                  batch_size=batch_size)
-    # Exibir o mapa após todos os pontos serem carregados
-    st_folium(mapa, width=800, height=500)
+        time.sleep(0.5)  # Simular o carregamento progressivo
+        st_folium(mapa, width=800, height=500)
