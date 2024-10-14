@@ -1,9 +1,10 @@
+"""Bibliotecas necessárias para o dashboard de sinalizações."""
+import re
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import folium
 from streamlit_folium import st_folium
-import re
 
 # URL base para as imagens
 URL_BASE_IMAGENS = "https://sgpgoinfra.com.br/imagensInventario/"
@@ -15,58 +16,71 @@ st.set_page_config(page_title="Dashboard de Sinalizações", layout="wide")
 # Carregar os dados de Sinalização Vertical e Horizontal
 @st.cache_data
 def carregar_dados_vertical():
+    """Carregar dados de sinalizações verticais."""
     return pd.read_csv("sinalizacao_vertical.csv", sep=";")
 
 
 @st.cache_data
 def carregar_dados_horizontal():
+    """Carregar dados de sinalizações horizontais."""
     return pd.read_csv("sinalizacao_horizontal.csv", sep=";")
 
 
 # Função para limpar strings removendo espaços e caracteres especiais (para agrupar)
 def limpar_string(texto):
-    texto_limpo = re.sub(r'[^A-Za-z0-9]', '', texto.upper())
-    return texto_limpo
+    """Normalizar as strings, removendo caracteres especiais."""
+    return re.sub(r'[^A-Za-z0-9]', '', texto.upper())
 
 
 # Função para classificar condição como positiva ou negativa
 def classificar_condicao(condicao):
+    """
+    Classificar as condições de uma sinalização como 'Boa', 'Ruim', 'Regular' ou 'Indeterminada'.
+    A classificação é baseada em palavras-chave encontradas na descrição da condição.
+    """
     condicao = condicao.upper()
-    positivas = ["BOAS", "BOA", "BOM", "ÓTIMO", "EXCELENTE", "ADEQUADO", "SIMPLES", "BOAS CONDIÇÕES", "EM BOAS CONDIÇÕES"]
+    positivas = ["BOAS", "BOA", "BOM", "SIMPLES", "BOAS CONDIÇÕES", "EM BOAS CONDIÇÕES"]
     negativas = ["RUIM", "PÉSSIMO", "INADEQUADO", "QUEBRADA", "AMASSADA", "QUEIMADA"]
     regulares = ["REGULAR"]
 
     if any(palavra in condicao for palavra in positivas):
         return "Boa"
-    elif any(palavra in condicao for palavra in negativas):
+    if any(palavra in condicao for palavra in negativas):
         return "Ruim"
-    elif any(palavra in condicao for palavra in regulares):
+    if any(palavra in condicao for palavra in regulares):
         return "Regular"
-    else:
-        return "Indeterminada"
+    return "Indeterminada"
 
 
 # Aplicar a classificação de condição nas colunas de condições e condicao
 def classificar_condicoes(df, coluna_condicao):
+    """Aplicar a classificação de condição para uma coluna específica em um dataframe."""
     df['classificacao'] = df[coluna_condicao].apply(classificar_condicao)
     return df
 
 
 # Função para gerar o gráfico de pizza com base nas condições e cores fixas
 def gerar_grafico_pizza(df, tipo_sinalizacao):
+    """Gerar um gráfico de pizza para as condições das sinalizações."""
     cores = {
         "Boa": "green",
         "Ruim": "red",
         "Regular": "#faa702",
         "Indeterminada": "gray"
     }
-    fig = px.pie(df, names='classificacao', title=f"Condições das Sinalizações ({tipo_sinalizacao})",
-                 color='classificacao', color_discrete_map=cores)
+    fig = px.pie(
+        df,
+        names='classificacao',
+        title=f"Condições das Sinalizações ({tipo_sinalizacao})",
+        color='classificacao',
+        color_discrete_map=cores
+    )
     return fig
 
 
-# Função para gerar gráfico de barras com a contagem de tipos, agrupando valores semelhantes
+# Função para gerar gráfico de barras com a contagem de tipos
 def gerar_grafico_barras_tipos(df, coluna, titulo):
+    """Gerar um gráfico de barras para a distribuição de tipos."""
     df['coluna_normalizada'] = df[coluna].apply(limpar_string)
     contagem = df['coluna_normalizada'].value_counts().reset_index()
     contagem.columns = [coluna, 'Quantidade']
@@ -74,10 +88,13 @@ def gerar_grafico_barras_tipos(df, coluna, titulo):
     return fig
 
 
-# Função para gerar o mapa de sinalizações verticais com círculos coloridos
-def adicionar_pontos_mapa_verticais(df, mapa):
+def adicionar_pontos_mapa_verticais(df, mapa_vertical):
+    """Adicionar pontos de sinalizações verticais no mapa com cores representando as condições."""
     for _, row in df.iterrows():
-        color = "green" if row['classificacao'] == "Boa" else "red" if row['classificacao'] == "Ruim" else "#faa702" if row['classificacao'] == "Regular" else "gray"
+        color = ("green" if row['classificacao'] == "Boa"
+                 else "red" if row['classificacao'] == "Ruim"
+                 else "#faa702" if row['classificacao'] == "Regular"
+                 else "gray")
         popup_content = f"""
         <strong>Sinalização Vertical</strong><br>
         SRE: {row['sre']}<br>
@@ -95,14 +112,18 @@ def adicionar_pontos_mapa_verticais(df, mapa):
             fill=True,
             fill_color=color,
             popup=popup_content
-        ).add_to(mapa)
-    return mapa
+        ).add_to(mapa_vertical)
+    return mapa_vertical
 
 
 # Função para gerar o mapa de sinalizações horizontais com linhas coloridas
-def adicionar_pontos_mapa_horizontais(df, mapa):
+def adicionar_pontos_mapa_horizontais(df, mapa_horizontal):
+    """Adicionar trechos de sinalizações horizontais no mapa."""
     for _, row in df.iterrows():
-        color = "green" if row['classificacao'] == "Boa" else "red" if row['classificacao'] == "Ruim" else "#faa702" if row['classificacao'] == "Regular" else "gray"
+        color = ("green" if row['classificacao'] == "Boa"
+                 else "red" if row['classificacao'] == "Ruim"
+                 else "#faa702" if row['classificacao'] == "Regular"
+                 else "gray")
         coordinates = [
             [row['latitude_inicial'], row['longitude_inicial']],
             [row['latitude_final'], row['longitude_final']]
@@ -121,8 +142,8 @@ def adicionar_pontos_mapa_horizontais(df, mapa):
             color=color,
             weight=5,
             popup=popup_content
-        ).add_to(mapa)
-    return mapa
+        ).add_to(mapa_horizontal)
+    return mapa_horizontal
 
 
 # Carregar dados
@@ -133,7 +154,10 @@ dados_horizontal = carregar_dados_horizontal()
 st.title("Dashboard de Sinalizações Verticais e Horizontais")
 
 # Layout de navegação
-opcao_dashboard = st.sidebar.radio("Escolha o tipo de sinalização", ["Sinalização Vertical", "Sinalização Horizontal"])
+opcao_dashboard = st.sidebar.radio(
+    "Escolha o tipo de sinalização",
+    ["Sinalização Vertical", "Sinalização Horizontal"]
+)
 
 if opcao_dashboard == "Sinalização Vertical":
     st.header("Sinalização Vertical")
@@ -149,10 +173,22 @@ if opcao_dashboard == "Sinalização Vertical":
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
-    rodovia_filtro = col1.selectbox("Rodovia", ["Todos"] + sorted(dados_vertical_classificado['rodovia'].unique()))
-    sre_filtro = col2.selectbox("SRE", ["Todos"] + sorted(dados_vertical_classificado['sre'].unique()))
-    pista_filtro = col3.selectbox("Pista", ["Todos"] + sorted(dados_vertical_classificado['pista'].unique()))
-    situacao_filtro = col4.selectbox("Situação", ["Todos", "Boa", "Ruim", "Regular", "Indeterminada"])
+    rodovia_filtro = col1.selectbox(
+        "Rodovia",
+        ["Todos"] + sorted(dados_vertical_classificado['rodovia'].unique())
+    )
+    sre_filtro = col2.selectbox(
+        "SRE",
+        ["Todos"] + sorted(dados_vertical_classificado['sre'].unique())
+    )
+    pista_filtro = col3.selectbox(
+        "Pista",
+        ["Todos"] + sorted(dados_vertical_classificado['pista'].unique())
+    )
+    situacao_filtro = col4.selectbox(
+        "Situação",
+        ["Todos", "Boa", "Ruim", "Regular", "Indeterminada"]
+    )
 
     data_min = pd.to_datetime(dados_vertical_classificado['data']).min()
     data_max = pd.to_datetime(dados_vertical_classificado['data']).max()
@@ -170,7 +206,7 @@ if opcao_dashboard == "Sinalização Vertical":
     dados_filtrados = dados_filtrados[
         (pd.to_datetime(dados_filtrados['data']) >= pd.to_datetime(data_filtro[0])) &
         (pd.to_datetime(dados_filtrados['data']) <= pd.to_datetime(data_filtro[1]))
-    ]
+        ]
 
     col1, col2 = st.columns([2, 2])  # Ajustar a proporção entre colunas para 3:1
 
@@ -189,10 +225,18 @@ if opcao_dashboard == "Sinalização Vertical":
             """, unsafe_allow_html=True
         )
     colBar1, colBar2 = st.columns(2)
-    fig_barras_tipos = gerar_grafico_barras_tipos(dados_filtrados, 'tipo', "Distribuição por Tipo")
+    fig_barras_tipos = gerar_grafico_barras_tipos(
+        dados_filtrados,
+        'tipo',
+        "Distribuição por Tipo"
+    )
     colBar1.plotly_chart(fig_barras_tipos)
 
-    fig_barras_categorias = gerar_grafico_barras_tipos(dados_filtrados, 'categoria_sinal', "Distribuição por Categoria")
+    fig_barras_categorias = gerar_grafico_barras_tipos(
+        dados_filtrados,
+        'categoria_sinal',
+        "Distribuição por Categoria"
+    )
     colBar2.plotly_chart(fig_barras_categorias)
 
     if rodovia_filtro != "Todos":
@@ -209,15 +253,29 @@ elif opcao_dashboard == "Sinalização Horizontal":
 
     dados_horizontal_classificado['tipo'] = dados_horizontal_classificado['tipo'].str.upper()
     dados_horizontal_classificado['pista'] = dados_horizontal_classificado['pista'].str.upper()
-    dados_horizontal_classificado['rodovia'] = dados_horizontal_classificado['sre'].str[:3].str.upper()
+    dados_horizontal_classificado['rodovia'] = (
+        dados_horizontal_classificado['sre'].str[:3].str.upper()
+    )
     dados_horizontal_classificado['sre'] = dados_horizontal_classificado['sre'].str.upper()
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
-    rodovia_filtro = col1.selectbox("Rodovia", ["Todos"] + sorted(dados_horizontal_classificado['rodovia'].unique()))
-    sre_filtro = col2.selectbox("SRE", ["Todos"] + sorted(dados_horizontal_classificado['sre'].unique()))
-    pista_filtro = col3.selectbox("Pista", ["Todos"] + sorted(dados_horizontal_classificado['pista'].unique()))
-    situacao_filtro = col4.selectbox("Situação", ["Todos", "Boa", "Ruim", "Regular", "Indeterminada"])
+    rodovia_filtro = col1.selectbox(
+        "Rodovia",
+        ["Todos"] + sorted(dados_horizontal_classificado['rodovia'].unique())
+    )
+    sre_filtro = col2.selectbox(
+        "SRE",
+        ["Todos"] + sorted(dados_horizontal_classificado['sre'].unique())
+    )
+    pista_filtro = col3.selectbox(
+        "Pista",
+        ["Todos"] + sorted(dados_horizontal_classificado['pista'].unique())
+    )
+    situacao_filtro = col4.selectbox(
+        "Situação",
+        ["Todos", "Boa", "Ruim", "Regular", "Indeterminada"]
+    )
 
     data_min = pd.to_datetime(dados_horizontal_classificado['data']).min()
     data_max = pd.to_datetime(dados_horizontal_classificado['data']).max()
@@ -235,7 +293,7 @@ elif opcao_dashboard == "Sinalização Horizontal":
     dados_filtrados = dados_filtrados[
         (pd.to_datetime(dados_filtrados['data']) >= pd.to_datetime(data_filtro[0])) &
         (pd.to_datetime(dados_filtrados['data']) <= pd.to_datetime(data_filtro[1]))
-    ]
+        ]
 
     # Layout de gráfico de pizza + card com total de sinalizações
     col1, col2 = st.columns(2)
@@ -257,10 +315,18 @@ elif opcao_dashboard == "Sinalização Horizontal":
 
     colBar1, colBar2 = st.columns(2)
 
-    fig_barras_tipos = gerar_grafico_barras_tipos(dados_filtrados, 'tipo', "Distribuição por Tipo")
+    fig_barras_tipos = gerar_grafico_barras_tipos(
+        dados_filtrados,
+        'tipo',
+        "Distribuição por Tipo"
+    )
     colBar1.plotly_chart(fig_barras_tipos)
 
-    fig_barras_material = gerar_grafico_barras_tipos(dados_filtrados, 'material', "Distribuição por Material")
+    fig_barras_material = gerar_grafico_barras_tipos(
+        dados_filtrados,
+        'material',
+        "Distribuição por Material"
+    )
     colBar2.plotly_chart(fig_barras_material)
 
     if rodovia_filtro != "Todos":
