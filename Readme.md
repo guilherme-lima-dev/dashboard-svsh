@@ -35,7 +35,7 @@ Adicione aqui as capturas de tela para que o usuário veja a interface do projet
 
 - Dashboard de Sinalizações Horizontais:
   ![Screenshot Horizontais](./images/screenshot_horizontais1.png)
-  ![Screenshot Horizontais](./images/screenshot_horizontais1.png)
+  ![Screenshot Horizontais](./images/screenshot_horizontais2.png)
 
 ## Como Rodar o Projeto
 
