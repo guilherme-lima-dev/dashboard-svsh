@@ -42,7 +42,6 @@ Adicione aqui as capturas de tela para que o usuário veja a interface do projet
 ### Pré-requisitos
 
 1. **Python 3.x**: Certifique-se de ter o Python instalado.
-2. **Bibliotecas Python**: Instale as dependências listadas no arquivo `requirements.txt`.
 
 ### Passo a Passo
 
